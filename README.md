@@ -6,6 +6,10 @@ Zero is redefined: `0` is not emptiness — it's one absence (`1(0)`). This mean
 
 **Read the paper**: [Absence Theory](https://www.academia.edu/150254484/Absence_Theory_Quantified_Absence_and_State_Aware_Arithmetic_within_Domains_of_Reference)
 
+## Intellectual Property Notice
+
+The mathematical frameworks implemented in PhantomTrace (including Absence Theory and State-Aware Arithmetic) are the subject of **US Provisional Patent Application No. 63/848,955**. While the source code is provided under the **MIT License**, the underlying methods and systems are proprietary inventions. For academic or derivative works, citation is requested as per the `CITATION.cff` file.
+
 ## Installation
 
 ```bash
