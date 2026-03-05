@@ -1,0 +1,38 @@
+cff-version: 1.2.0
+message: "Users who implement the methods or concepts derived from this software—specifically Absence Theory and State-Aware Arithmetic—are expected to cite the following article and patent application."
+authors:
+  - family-names: Beitchman
+    given-names: Jordan
+title: "PhantomTrace"
+version: "0.7.7"
+date-released: 2026-03-04
+url: "https://github.com/jordanbeitchman-spec/PhantomTrace"
+
+references:
+  - type: article
+    authors: 
+      - family-names: Beitchman
+        given-names: Jordan
+    title: "Absence Theory: Quantified Absence and State-Aware Arithmetic within Domains of Reference"
+    url: "https://www.academia.edu/150254484/Absence_Theory_Quantified_Absence_and_State_Aware_Arithmetic_within_Domains_of_Reference"
+    year: 2026
+
+  - type: patent
+    authors:
+      - family-names: Beitchman
+        given-names: Jordan
+    title: "Computational Software for Non-Traditional Mathematical Frameworks Using Multiple Zeros" 
+    number: "US 63/848,955"
+    year: 2025
+    notes: "Provisional Patent Application"
+
+preferred-citation:
+  type: article
+  authors:
+    - family-names: Beitchman
+      given-names: Jordan
+  title: "Absence Theory: Quantified Absence and State-Aware Arithmetic within Domains of Reference"
+  url: "https://www.academia.edu/150254484/Absence_Theory_Quantified_Absence_and_State_Aware_Arithmetic_within_Domains_of_Reference"
+  year: 2026
+
+  
