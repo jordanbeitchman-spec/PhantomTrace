@@ -1,0 +1,38 @@
+[project]
+name = "PhantomTrace"
+version = "0.7.7"
+description = "PhantomTrace — a mathematical framework where numbers exist in present or absent states with custom operations to include addition, subtraction, multiplication, division, and erasure."
+authors = [{name = "PhantomTrace Project"}]
+requires-python = ">=3.8"
+dependencies = []
+license = {text = "MIT"}
+readme = "PKG_README.md"
+keywords = ["math", "calculus", "absence", "abstract-algebra", "number-theory", "phantomtrace", "dual-state"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
+
+[project.urls]
+Homepage = "https://github.com/jordanbeitchman-spec/PhantomTrace"
+Documentation = "https://github.com/jordanbeitchman-spec/PhantomTrace#readme"
+Issues = "https://github.com/jordanbeitchman-spec/PhantomTrace/issues"
+
+[project.scripts]
+phantomtrace = "absence_calculator.calculator:interactive_calculator"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["absence_calculator*"]
