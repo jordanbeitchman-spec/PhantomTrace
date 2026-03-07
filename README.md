@@ -4,11 +4,9 @@ A Python library implementing an experimental mathematical framework where numbe
 
 Zero is redefined: `0` is not emptiness — it's one absence (`1(0)`). This means every operation has a defined result, including division by zero.
 
+
 **Read the paper**: [Absence Theory](https://www.academia.edu/150254484/Absence_Theory_Quantified_Absence_and_State_Aware_Arithmetic_within_Domains_of_Reference)
 
-## Intellectual Property Notice
-
-The mathematical frameworks implemented in PhantomTrace (including Absence Theory and State-Aware Arithmetic) are the subject of **US Provisional Patent Application No. 63/848,955**. While the source code is provided under the **MIT License**, the underlying methods and systems are proprietary inventions. For academic or derivative works, citation is requested as per the `CITATION.cff` file.
 
 ## Installation
 
@@ -16,7 +14,33 @@ The mathematical frameworks implemented in PhantomTrace (including Absence Theor
 pip install phantomtrace
 ```
 
-## Shorthand Notation (v0.3.0)
+
+## Core Concepts
+
+### Objects and States
+
+An object is a number that has both a **value** and a **state**:
+- **Present** (default): Written normally, e.g. `5`. Present quantities reflect the presence of a given unit of interest. (e.g. if the unit is a cat, then 5 represents 5 cats that are there or in a present state)
+- **Absent**: Written with `(0)`, e.g. `5(0)` — think of it as `5 * 0`. Absent quantities reflect the absence of a given unit of interest. (e.g. if the unit is a phone, then 5(0) represents 5 phones that are not currently there but are still considered for computation)
+
+Both states carry magnitude. `5` and `5(0)` both have a value of 5 — the state tells you whether it's present or absent, but the magnitude never disappears.
+
+### Absence
+
+- **Zero**: `0` is not emptiness, it's one absence (`1(0) = 1 * 0 = 0`)
+- **Absence of absence** returns to present: `5(0)(0) = 5`, and `0(0) = 1`
+
+### Operations
+
+| Operation | Symbol | Rule |
+|-----------|--------|------|
+| Addition | `+` | Expands the amount of objects under consideration. Same state: magnitudes combine. Mixed: unresolved |
+| Subtraction | `-` | Contracts the amount of objects under consideration. (If the domain of consideration is constricted to nothing then the result is void. Void is not an object, nor the new zero, it simply means we are not considering anything on which to act.) Same state: magnitudes reduce (can go negative). Mixed: unresolved|
+| Multiplication | `*` | Magnitudes multiply. States combine (present*present=present, absent*present=absent, absent*absent=present) |
+| Division | `/` | Magnitudes divide. States combine same as multiplication. Division by 0 is defined! |
+| Erasure | `erased` | Same state required. Remainder keeps state, erased portion flips state. Over-erasure creates erased excess |
+
+## Number Creation
 
 Use the `n()` shorthand to create numbers quickly:
 
@@ -52,6 +76,10 @@ print(result)  # 8
 # Subtraction — equal values cancel to void
 result = subtract(n(7), n(7))
 print(result)  # void
+
+# Subtraction — can go negative (v0.7.8)
+result = subtract(n(3)(0), n(5)(0))
+print(result)  # -2(0) — negative absence is its own thing
 
 # Multiplication — states combine (like XOR)
 result = multiply(n(5)(0), n(3))
@@ -114,41 +142,18 @@ python -m absence_calculator
 
 This gives you a `calc >>` prompt where you can type expressions and see results.
 
-## Core Concepts
+## Erasure 
 
-### Objects and States
+Erasure is subtraction without 'forgetting' the quantity removed. There are still the same number of objects present for computation before and after the application of erasure. Similarly to subtraction, over-erasure produces a debt-like quantity.
 
-An object is a number that has both a **value** and a **state**:
-- **Present** (default): Written normally, e.g. `5`. Present quantities reflect the presence of a given unit of interest. (e.g. if the unit is a cat, then 5 represents 5 cats that are there or in a present state)
-- **Absent**: Written with `(0)`, e.g. `5(0)` — think of it as `5 * 0`. Absent quantities reflect the absence of a given unit of interest. (e.g. if the unit is a phone, then 5(0) represents 5 phones that are not currently there but are still considered for computation)
-
-Both states carry magnitude. `5` and `5(0)` both have a value of 5 — the state tells you whether it's present or absent, but the magnitude never disappears.
-
-### Absence
-  
-- **Zero**: `0` is not emptiness, it's one absence (`1(0) = 1 * 0 = 0`)
-- **Absence of absence** returns to present: `5(0)(0) = 5`, and `0(0) = 1`
-
-### Operations
-
-| Operation | Symbol | Rule |
-|-----------|--------|------|
-| Addition | `+` | Expands the amount of objects under consideration. Same state: magnitudes combine. Mixed: unresolved |
-| Subtraction | `-` | Contracts the amount of objects under consideration. (If the domain of consideration is constricted to nothing then the result is void. Void is not an object, nor the new zero, it simply means we are not considering anything on which to act.) Same state: magnitudes reduce. Mixed: unresolved|
-| Multiplication | `*` | Magnitudes multiply. States combine (present*present=present, absent*present=absent, absent*absent=present) |
-| Division | `/` | Magnitudes divide. States combine same as multiplication. Division by 0 is defined! |
-| Erasure | `erased` | Same state required. Remainder keeps state, erased portion flips state. Over-erasure creates erased excess |
-
-### Over-Erasure (v0.2.0)
-
-When you erase more than the total, the result carries an **erased excess** (erasure debt):
+When you erase more than the total, the result carries **erased excess** (erasure debt):
 
 - `7 erased 10` = `7(0) + erased 3` — all 7 flip state, 3 excess erasure persists
 - Adding resolves excess: `(7(0) + erased 3) + 3` = `10(0)`
 
-### State Functions: `erased()` and `negative()` (v0.7.4)
+### Erasure and Subtraction: `erased()` and `negative()`
 
-Just like subtraction can be thought of as adding a negative (`x - y = x + (-y)`), erasure can be thought of as adding an erased state (`erase(x, y) = x + erased(y)`). The `erased()` function creates an erased state, and the `erase()` function is shorthand for adding that erased state.
+Just like subtraction can be thought of as adding a negative (`x - y = x + (-y)`), erasure can be thought of as adding an erased number: (`erase(x, y) = x + erased(y)`). The `erased()` function creates an erased number, and the `erase()` function is shorthand for adding that erased state.
 
 ```python
 from absence_calculator import n, erase, erased, negative, add
@@ -183,7 +188,7 @@ erased([n(1), n(2), n(3)])      # → [erased 1, erased 2, erased 3]
 negative([n(1), n(2), n(3)])    # → [-1, -2, -3]
 ```
 
-### Layered Erasure (v0.7.4)
+### Layered Erasure
 
 Erasure can be layered to any depth — you can erase erased quantities from other erased quantities. The same erasure rules apply: same state required, remainder keeps state, erased portion flips state.
 
@@ -226,19 +231,374 @@ erase(erased(erased(n(5))), erased(n(5)))
 # → erased erased 5 erased erased 5 (unresolved)
 ```
 
-### Compound Expressions (v0.2.0)
+## Examples
+
+All operations now accept plain Python integers — they're automatically treated as present numbers. No need to wrap every number in `n()`:
+
+```python
+from absence_calculator import n, add, subtract, multiply, divide, erase
+
+add(n(5), 3)          # → 8    (3 is treated as n(3))
+subtract(10, 3)       # → 7
+multiply(n(5), 3)     # → 15
+divide(10, 2)         # → 5
+erase(5, 3)           # → 2 + 3(0)
+```
+
+Subtraction can now produce negative values. If absence is quantified, negative absence is meaningful — it's the opposite direction on the same state scale:
+
+```python
+subtract(n(3)(0), n(5)(0))  # → -2(0) — negative absence
+subtract(n(3), n(5))        # → -2    — negative present
+subtract(n(5)(0), n(3)(0))  # → 2(0)  — same as before
+subtract(n(5), n(5))        # → void  — same as before
+```
+
+## Compound Expressions 
 
 Operations can now accept unresolved expressions as inputs:
 
 - `(1 + 5(0)) erased 1` = `6(0)` — erases the present part, combining with the absent part
 
-### Result Types
+All five operations (add, subtract, multiply, divide, erase) work on Unresolved expressions by operating on the terms inside them:
+
+```python
+u = subtract(n(7), n(5)(0))    # → 7 - 5(0) (unresolved — different states)
+
+add(u, 7)                      # → 14 - 5(0)       (adds to the present term)
+add(n(8)(0), u)                # → 7 + 3(0)        (8(0) combines with -5(0))
+subtract(u, 2)                 # → 5 - 5(0)        (subtracts from present term)
+multiply(u, n(5)(0))           # → 35(0) - 25      (distributes: 7×5(0) - 5(0)×5(0))
+divide(u, n(5)(0))             # → 1.4(0) - 1      (distributes: 7/5(0) - 5(0)/5(0))
+divide(n(5)(0), u)             # → 5(0) / 7 - 5(0) (can't distribute denominator, but still operable)
+
+multiply(divide(n(5)(0), u), 2)  # → 10(0) / 7 - 5(0) (chain operations — nothing is incalculable)
+```
+
+Multiplication distributes because it's repeated addition — but multiplying by an absent number forces the result's state through the state combination rule (presence of absence = absence, absence of absence = presence) and the terms on which repetition is used. Division can be thought of as repeated subtraction up until void. (Read Absence Theory for more information)
+
+## Result Types
 
 - **AbsentNumber**: A number with a state (present or absent)
 - **Void**: Complete cancellation — not zero, but the absence of any quantity under consideration
 - **ErasureResult**: Two parts — remainder (keeps state) and erased portion (flipped state)
 - **ErasedExcess**: Excess erasure debt that persists until resolved. Can be created directly with `erased()`
-- **Unresolved**: An expression that cannot be simplified (e.g., adding present + absent). Stores full operation data so it can be operated on in future operations
+- **Unresolved**: An expression that cannot be simplified (e.g., adding present + absent). Stores full operation data so it can be operated on
+in future operations
+
+## Trace Function
+
+`trace()` is an absent-aware lambda — it evaluates a function over a range of values, producing a vector of results. The range can be present or absent, and all operations work naturally within the trace. Think of it as "map a function across a range of AbsentNumbers."
+
+### Trace Ordering
+
+Numbers of different states (present vs absent) are the same magnitude, just different state — they can't be ordered against each other by default. Same-state ranges iterate naturally by magnitude:
+
+```python
+from absence_calculator import n, trace, multiply, present, absent, largest, ordering
+
+trace(lambda x: multiply(x, x), n(1), n(5))
+# → [1, 4, 9, 16, 25] — present ascending
+
+trace(lambda x: multiply(x, x), n(5)(0), n(2)(0))
+# → [25, 16, 9, 4] — absent descending
+```
+
+Cross-state ranges require a user-defined ordering:
+
+```python
+o = ordering(largest(present()), largest(absent()))
+
+trace(lambda x: x, n(3), n(3)(0), order=o)
+# → [3, 2, 1, 0, 2(0), 3(0)]
+# Path: present descending → boundary → absent ascending
+
+trace(lambda x: x, n(5)(0), n(5), order=o)
+# → [5(0), 4(0), 3(0), 2(0), 0, 1, 2, 3, 4, 5]
+# Reversed: user specified opposite direction from ordering
+```
+
+Without an ordering, cross-state trace raises an error — because the framework doesn't assume which state is "first."
+
+### Basic Traces
+
+```python
+from absence_calculator import n, trace, multiply, add, erase, divide, subtract
+
+# x² over an absent range: 5(0) down to 2(0)
+trace(lambda x: multiply(x, x), n(5)(0), n(2)(0))
+# → [25, 16, 9, 4]
+# 5(0)*5(0) = 25 (absent × absent = present)
+
+# x erased x — a "toggler" that flips every value
+trace(lambda x: erase(x, x), n(1), n(5))
+# → [1(0), 2(0), 3(0), 4(0), 5(0)]
+
+# x + x over a present range
+trace(lambda x: add(x, x), n(1), n(4))
+# → [2, 4, 6, 8]
+
+# x - 1 over a range
+trace(lambda x: subtract(x, n(1)), n(3), n(5))
+# → [2, 3, 4]
+
+# x / 2 over a range
+trace(lambda x: divide(x, n(2)), n(2), n(6))
+# → [1, 1.5, 2, 2.5, 3]
+
+# Mixed operations: x² + x over absent range
+trace(lambda x: add(multiply(x, x), x), n(1)(0), n(3)(0))
+# → [1 + 0, 4 + 2(0), 9 + 3(0)]
+# x² is present (absent × absent), x is absent → unresolved at each position
+```
+
+### Unbound and Partial Traces
+
+You can create a trace without specifying the range, and bind it later. `bind()` returns a new result — it doesn't modify the original trace.
+
+```python
+# Unbound — define the function now, bind the range later
+t = trace(lambda x: multiply(x, x))
+print(t)             # trace(unbound)
+t(n(5))              # → 25 (call it like a function)
+result = t.bind(n(1), n(5))  # → [1, 4, 9, 16, 25]
+
+# Partially bound — set start now, end later
+t2 = trace(lambda x: add(x, n(10)), start=n(1))
+print(t2)            # trace(start=1)
+result = t2.bind(n(3))   # → [11, 12, 13]  (fills in the missing end)
+
+# Or use keyword args
+result = t2.bind(end=n(3))   # → [11, 12, 13]
+```
+
+### Void Rejection
+
+Trace rejects void ranges — void means "no number over which to operate":
+
+```python
+from absence_calculator import VOID
+
+trace(lambda x: x, VOID, n(5))
+# → ValueError: Cannot trace over void — void is no calculation
+```
+
+## Builder Module
+
+The builder module lets you define your own mathematical domains with custom states, state transitions, and operation rules:
+
+```python
+from absence_calculator.builder import StateSpace
+
+space = StateSpace("quantum")
+superposed = space.add_state("superposed")
+collapsed = space.add_state("collapsed")
+entangled = space.add_state("entangled")
+
+space.add_transition("measure", "superposed", "collapsed")
+space.add_transition("entangle", "collapsed", "entangled")
+
+space.add_rule("add", same_state="combine", mixed_state="unresolved")
+space.add_rule("multiply", state_combination={
+    ("superposed", "superposed"): "collapsed",
+    ("superposed", "collapsed"): "entangled",
+    ("collapsed", "collapsed"): "collapsed",
+})
+
+x = space.number(5, "superposed")
+y = space.number(3, "superposed")
+z = space.number(7, "collapsed")
+
+space.add(x, y)           # → 8[superposed] (same state combines)
+space.add(x, z)           # → unresolved (different states, no rule)
+space.multiply(x, y)      # → 15[collapsed] (state combination rule)
+space.multiply(x, z)      # → 35[entangled] (state combination rule)
+space.transition("measure", x)  # → 5[collapsed]
+```
+
+The existing present/absent system can be expressed as a StateSpace:
+
+```python
+from absence_calculator.builder import presence_absence_space
+
+pa = presence_absence_space()
+p5 = pa.number(5, "present")
+a3 = pa.number(3, "absent")
+pa.multiply(p5, a3)       # → 15[absent]
+pa.multiply(a3, a3)       # → 9[present] (absence of absence = presence)
+```
+
+## Tensor Creation
+
+`tensor()` creates multi-dimensional tensors — nested lists of AbsentNumbers at any depth. Vectors are rank 1, matrices are rank 2, and you can go as deep as you need. Every element always retains both its value and its state — nothing is ever removed, only toggled.
+
+```python
+from absence_calculator import tensor, n
+
+# Vector (rank 1) — 5 elements, all absent
+v = tensor(5, fill='absent')
+# → [1(0), 2(0), 3(0), 4(0), 5(0)]
+# Default: values are sequential — position IS identity
+
+# Matrix (rank 2) — 3 rows of 4 elements, all present
+m = tensor((3, 4), fill='present')
+# → [[1, 2, 3, 4],
+#    [1, 2, 3, 4],
+#    [1, 2, 3, 4]]
+
+# 3D Tensor (rank 3) — 2 matrices of 3 rows of 4 elements
+t = tensor((2, 3, 4), fill='absent')
+# Each element has a value and a state — absent, but never gone
+
+# 4D Tensor (rank 4)
+t4 = tensor((2, 2, 3, 5))
+# Matrices inside matrices — as deep as you need
+```
+
+### Seed — State Randomization
+
+The `seed` parameter randomizes which positions are present vs absent. Values stay sequential (position = identity) — only states change. Closer seeds produce more similar patterns, with adjacent seeds differing by exactly one position.
+
+```python
+# seed controls how many positions are present
+r0 = tensor(5, seed=0)
+# → [1(0), 2(0), 3(0), 4(0), 5(0)]  (seed 0 = all absent)
+
+r3 = tensor(5, seed=3)
+# → 3 positions present, 2 absent (deterministic which ones)
+
+r4 = tensor(5, seed=4)
+# → 4 positions present — differs from seed 3 by exactly 1 position
+
+r5 = tensor(5, seed=5)
+# → [1, 2, 3, 4, 5]  (seed = size = all present)
+
+# Same seed always gives the same pattern
+tensor(5, seed=3) == tensor(5, seed=3)  # True
+
+# Wraps around: seed 6 on a size-5 tensor = seed 0
+r6 = tensor(5, seed=6)
+# → same as seed 0
+
+# Works on matrices and higher — position ordering spans the entire tensor
+m = tensor((3, 4), seed=6)
+# 6 of 12 positions are present, rest absent
+```
+
+### Inspecting Tensors
+
+```python
+toggle.rank(n(5))                       # → 0 (scalar)
+toggle.rank([n(1), n(2)])               # → 1 (vector)
+toggle.rank([[n(1), n(2)], [n(3), n(4)]])  # → 2 (matrix)
+toggle.rank(tensor((2, 3, 4)))          # → 3 (3D tensor)
+
+toggle.shape(tensor((3, 4)))            # → (3, 4)
+toggle.shape(tensor((2, 3, 4)))         # → (2, 3, 4)
+```
+
+## Tensor Operations
+
+All calculator operations now work on tensors — add, subtract, multiply, divide, and erase. Both inputs must have the same shape. Operations are applied element-by-element at every depth. Each position follows its own rules, so some positions may be unresolved while others resolve cleanly.
+
+### All Operations on Tensors
+
+```python
+from absence_calculator import n, add, subtract, multiply, divide, erase
+
+# Addition — same state combines, mixed is unresolved
+add([n(7), n(8)(0), n(10)], [n(4), n(3), n(7)(0)])
+# → [11, 8(0) + 3, 10 + 7(0)]
+
+# Subtraction — equal values cancel to void
+subtract([n(7), n(5), n(10)(0)], [n(3), n(5), n(4)(0)])
+# → [4, void, 6(0)]
+
+# Multiplication — states combine (absent × absent = present)
+multiply([n(3), n(4)(0), n(2)(0)], [n(5), n(3), n(6)(0)])
+# → [15, 12(0), 12]
+
+# Division — magnitudes divide, states combine
+divide([n(10), n(9)(0), n(8)], [n(2), n(3)(0), n(4)])
+# → [5, 3, 2]
+
+# Erasure — flips state of erased portion
+erase([n(7), n(5), n(3)], [n(3), n(5), n(1)])
+# → [4 + 3(0), 5(0), 2 + 0]
+
+# Erasure with unresolved elements
+erase([n(7), add(n(5), n(3)(0)), n(3)], [n(6), n(4), n(2)])
+# → [1 + 6(0), 1 + 7(0), 1 + 2(0)]
+
+# All operations work on matrices and higher-rank tensors too
+add([[n(1), n(2)], [n(3), n(4)]], [[n(5), n(6)], [n(7), n(8)]])
+# → [[6, 8], [10, 12]]
+```
+
+### Combine
+
+`combine()` counts present vs absent at each position, ignoring scalar values. Each element becomes `1` (if present) or `1(0)` (if absent), then adds them together. Void elements contribute nothing — they're not present or absent, just void. Two voids combine to void.
+
+```python
+from absence_calculator import n, combine, VOID
+
+# Mixed states — each position has one present and one absent
+combine([n(1), n(2)(0), n(3), n(4)(0)],
+        [n(0), n(2), n(3)(0), n(4)])
+# → [1 + 0, 0 + 1, 1 + 0, 0 + 1]
+# (0 here is 1(0) — one absence)
+
+# Both present at every position
+combine([n(5), n(3)], [n(2), n(7)])
+# → [2, 2]    (two presents each)
+
+# Both absent at every position
+combine([n(5)(0), n(3)(0)], [n(2)(0), n(7)(0)])
+# → [2(0), 2(0)]    (two absents each)
+
+# Combine with void — counts only the non-void side (v0.6.0)
+combine([n(5), n(4)(0), n(3), n(2)(0)], [VOID, VOID, VOID, VOID])
+# → [1, 0, 1, 0]
+# Present → 1, Absent → 1(0) (displayed as 0), Void contributes nothing
+
+# Void + void = void
+combine([VOID, VOID], [VOID, VOID])
+# → [void, void]
+```
+
+### Compare
+
+`compare()` measures the shift in present vs absent from tensor 1 to tensor 2. Most useful on already-combined tensors where each position has the same total magnitude split between present and absent.
+
+Works directly with combine output — no need to manually construct Unresolved expressions:
+
+```python
+from absence_calculator import n, combine, compare
+
+# Two pairs of tensors with different state patterns
+c1 = [n(1), n(2), n(3), n(4)(0)]     # P P P A
+c2 = [n(5), n(6), n(7), n(8)]        # P P P P
+state1 = combine(c1, c2)
+# → [2, 2, 2, 0 + 1]  (2P, 2P, 2P, 1A+1P)
+
+c3 = [n(1)(0), n(2), n(3)(0), n(4)]  # A P A P
+c4 = [n(5), n(6)(0), n(7)(0), n(8)]  # P A A P
+state2 = combine(c3, c4)
+# → [0 + 1, 1 + 0, 2(0), 2]  (1A+1P, 1P+1A, 2A, 2P)
+
+compare(state1, state2)
+# → [0, 0, 2(0), 1]
+# Position 0: 2 present → 1 present = lost 1 → 0 (which is 1(0))
+# Position 1: 2 present → 1 present = lost 1 → 0 (which is 1(0))
+# Position 2: 2 present → 0 present = lost 2 → 2(0)
+# Position 3: 1 present → 2 present = gained 1 → 1
+
+# No change returns void
+same1 = combine([n(1), n(2)(0)], [n(3)(0), n(4)])  # 1+0, 1+0
+same2 = combine([n(5)(0), n(6)], [n(7), n(8)(0)])  # 1+0, 1+0
+compare(same1, same2)
+# → [void, void]  (no shift at either position)
+```
 
 ## Toggle Module
 
@@ -365,280 +725,6 @@ toggle.all(matrix)
 #    [40(0), 50, 60(0)]]
 ```
 
-## Tensor Creation (v0.5.0)
-
-`tensor()` creates multi-dimensional tensors — nested lists of AbsentNumbers at any depth. Vectors are rank 1, matrices are rank 2, and you can go as deep as you need. Every element always retains both its value and its state — nothing is ever removed, only toggled.
-
-```python
-from absence_calculator import tensor, n
-
-# Vector (rank 1) — 5 elements, all absent
-v = tensor(5, fill='absent')
-# → [1(0), 2(0), 3(0), 4(0), 5(0)]
-# Default: values are sequential — position IS identity
-
-# Matrix (rank 2) — 3 rows of 4 elements, all present
-m = tensor((3, 4), fill='present')
-# → [[1, 2, 3, 4],
-#    [1, 2, 3, 4],
-#    [1, 2, 3, 4]]
-
-# 3D Tensor (rank 3) — 2 matrices of 3 rows of 4 elements
-t = tensor((2, 3, 4), fill='absent')
-# Each element has a value and a state — absent, but never gone
-
-# 4D Tensor (rank 4)
-t4 = tensor((2, 2, 3, 5))
-# Matrices inside matrices — as deep as you need
-```
-
-### Seed — State Randomization (v0.6.0)
-
-The `seed` parameter randomizes which positions are present vs absent. Values stay sequential (position = identity) — only states change. Closer seeds produce more similar patterns, with adjacent seeds differing by exactly one position.
-
-```python
-# seed controls how many positions are present
-r0 = tensor(5, seed=0)
-# → [1(0), 2(0), 3(0), 4(0), 5(0)]  (seed 0 = all absent)
-
-r3 = tensor(5, seed=3)
-# → 3 positions present, 2 absent (deterministic which ones)
-
-r4 = tensor(5, seed=4)
-# → 4 positions present — differs from seed 3 by exactly 1 position
-
-r5 = tensor(5, seed=5)
-# → [1, 2, 3, 4, 5]  (seed = size = all present)
-
-# Same seed always gives the same pattern
-tensor(5, seed=3) == tensor(5, seed=3)  # True
-
-# Wraps around: seed 6 on a size-5 tensor = seed 0
-r6 = tensor(5, seed=6)
-# → same as seed 0
-
-# Works on matrices and higher — position ordering spans the entire tensor
-m = tensor((3, 4), seed=6)
-# 6 of 12 positions are present, rest absent
-```
-
-### Inspecting Tensors
-
-```python
-toggle.rank(n(5))                       # → 0 (scalar)
-toggle.rank([n(1), n(2)])               # → 1 (vector)
-toggle.rank([[n(1), n(2)], [n(3), n(4)]])  # → 2 (matrix)
-toggle.rank(tensor((2, 3, 4)))          # → 3 (3D tensor)
-
-toggle.shape(tensor((3, 4)))            # → (3, 4)
-toggle.shape(tensor((2, 3, 4)))         # → (2, 3, 4)
-```
-
-## Tensor Operations (v0.7.0)
-
-All calculator operations now work on tensors — add, subtract, multiply, divide, and erase. Both inputs must have the same shape. Operations are applied element-by-element at every depth. Each position follows its own rules, so some positions may be unresolved while others resolve cleanly.
-
-### All Operations on Tensors
-
-```python
-from absence_calculator import n, add, subtract, multiply, divide, erase
-
-# Addition — same state combines, mixed is unresolved
-add([n(7), n(8)(0), n(10)], [n(4), n(3), n(7)(0)])
-# → [11, 8(0) + 3, 10 + 7(0)]
-
-# Subtraction — equal values cancel to void
-subtract([n(7), n(5), n(10)(0)], [n(3), n(5), n(4)(0)])
-# → [4, void, 6(0)]
-
-# Multiplication — states combine (absent × absent = present)
-multiply([n(3), n(4)(0), n(2)(0)], [n(5), n(3), n(6)(0)])
-# → [15, 12(0), 12]
-
-# Division — magnitudes divide, states combine
-divide([n(10), n(9)(0), n(8)], [n(2), n(3)(0), n(4)])
-# → [5, 3, 2]
-
-# Erasure — flips state of erased portion
-erase([n(7), n(5), n(3)], [n(3), n(5), n(1)])
-# → [4 + 3(0), 5(0), 2 + 0]
-
-# Erasure with unresolved elements
-erase([n(7), add(n(5), n(3)(0)), n(3)], [n(6), n(4), n(2)])
-# → [1 + 6(0), 1 + 7(0), 1 + 2(0)]
-
-# All operations work on matrices and higher-rank tensors too
-add([[n(1), n(2)], [n(3), n(4)]], [[n(5), n(6)], [n(7), n(8)]])
-# → [[6, 8], [10, 12]]
-```
-
-### Combine (v0.5.0, updated v0.6.0)
-
-`combine()` counts present vs absent at each position, ignoring scalar values. Each element becomes `1` (if present) or `1(0)` (if absent), then adds them together. Void elements contribute nothing — they're not present or absent, just void. Two voids combine to void.
-
-```python
-from absence_calculator import n, combine, VOID
-
-# Mixed states — each position has one present and one absent
-combine([n(1), n(2)(0), n(3), n(4)(0)],
-        [n(0), n(2), n(3)(0), n(4)])
-# → [1 + 0, 0 + 1, 1 + 0, 0 + 1]
-# (0 here is 1(0) — one absence)
-
-# Both present at every position
-combine([n(5), n(3)], [n(2), n(7)])
-# → [2, 2]    (two presents each)
-
-# Both absent at every position
-combine([n(5)(0), n(3)(0)], [n(2)(0), n(7)(0)])
-# → [2(0), 2(0)]    (two absents each)
-
-# Combine with void — counts only the non-void side (v0.6.0)
-combine([n(5), n(4)(0), n(3), n(2)(0)], [VOID, VOID, VOID, VOID])
-# → [1, 0, 1, 0]
-# Present → 1, Absent → 1(0) (displayed as 0), Void contributes nothing
-
-# Void + void = void
-combine([VOID, VOID], [VOID, VOID])
-# → [void, void]
-```
-
-### Compare (v0.5.0)
-
-`compare()` measures the shift in present vs absent from tensor 1 to tensor 2. Most useful on already-combined tensors where each position has the same total magnitude split between present and absent.
-
-Works directly with combine output — no need to manually construct Unresolved expressions:
-
-```python
-from absence_calculator import n, combine, compare
-
-# Two pairs of tensors with different state patterns
-c1 = [n(1), n(2), n(3), n(4)(0)]     # P P P A
-c2 = [n(5), n(6), n(7), n(8)]        # P P P P
-state1 = combine(c1, c2)
-# → [2, 2, 2, 0 + 1]  (2P, 2P, 2P, 1A+1P)
-
-c3 = [n(1)(0), n(2), n(3)(0), n(4)]  # A P A P
-c4 = [n(5), n(6)(0), n(7)(0), n(8)]  # P A A P
-state2 = combine(c3, c4)
-# → [0 + 1, 1 + 0, 2(0), 2]  (1A+1P, 1P+1A, 2A, 2P)
-
-compare(state1, state2)
-# → [0, 0, 2(0), 1]
-# Position 0: 2 present → 1 present = lost 1 → 0 (which is 1(0))
-# Position 1: 2 present → 1 present = lost 1 → 0 (which is 1(0))
-# Position 2: 2 present → 0 present = lost 2 → 2(0)
-# Position 3: 1 present → 2 present = gained 1 → 1
-
-# No change returns void
-same1 = combine([n(1), n(2)(0)], [n(3)(0), n(4)])  # 1+0, 1+0
-same2 = combine([n(5)(0), n(6)], [n(7), n(8)(0)])  # 1+0, 1+0
-compare(same1, same2)
-# → [void, void]  (no shift at either position)
-```
-
-## Trace Function (v0.7.0)
-
-`trace()` is an absent-aware lambda — it evaluates a function over a range of values, producing a vector of results. The range can be present or absent, and all operations work naturally within the trace. Think of it as "map a function across a range of AbsentNumbers."
-
-### Absent Number Ordering in Ranges
-
-Absent numbers are considered "smaller" than present numbers. The ordering goes:
-
-```
-... 3(0), 2(0), 1(0), 1, 2, 3 ...
-```
-
-This means a range can cross from absent to present naturally:
-
-```python
-from absence_calculator import n, trace
-
-# Range from 3(0) to 3 covers: 3(0), 2(0), 1(0), 1, 2, 3
-trace(lambda x: x, n(3)(0), n(3))
-# → [3(0), 2(0), 1(0), 1, 2, 3]
-
-# Range from 500(0) to 7 covers all absent values down, then present up
-trace(lambda x: x, n(500)(0), n(7))
-# → [500(0), 499(0), ... 1(0), 1, 2, ... 7]  (507 elements)
-
-# Reverse: 3 down to 3(0) goes present to absent
-trace(lambda x: x, n(3), n(3)(0))
-# → [3, 2, 1, 1(0), 2(0), 3(0)]
-```
-
-### Basic Traces
-
-```python
-from absence_calculator import n, trace, multiply, add, erase, divide, subtract
-
-# x² over an absent range: 5(0) down to 2(0)
-trace(lambda x: multiply(x, x), n(5)(0), n(2)(0))
-# → [25, 16, 9, 4]
-# 5(0)*5(0) = 25 (absent × absent = present)
-
-# x erased x — a "toggler" that flips every value
-trace(lambda x: erase(x, x), n(1), n(5))
-# → [1(0), 2(0), 3(0), 4(0), 5(0)]
-
-# Cross-state range with erasure
-trace(lambda x: erase(x, n(5)(0)), n(5)(0), n(6))
-# → [5, 4 + erased 1, ... 1 + erased 4, 1 + erased 5(0), ... 6 + erased 5(0)]
-# Absent values erase same-state, present values create unresolved erasure debt
-
-# x + x over a present range
-trace(lambda x: add(x, x), n(1), n(4))
-# → [2, 4, 6, 8]
-
-# x - 1 over a range
-trace(lambda x: subtract(x, n(1)), n(3), n(5))
-# → [2, 3, 4]
-
-# x / 2 over a range
-trace(lambda x: divide(x, n(2)), n(2), n(6))
-# → [1, 1.5, 2, 2.5, 3]
-
-# Mixed operations: x² + x over absent range
-trace(lambda x: add(multiply(x, x), x), n(1)(0), n(3)(0))
-# → [1 + 0, 4 + 2(0), 9 + 3(0)]
-# x² is present (absent × absent), x is absent → unresolved at each position
-```
-
-### Unbound and Partial Traces
-
-You can create a trace without specifying the range, and bind it later. `bind()` returns a new result — it doesn't modify the original trace.
-
-```python
-# Unbound — define the function now, bind the range later
-t = trace(lambda x: multiply(x, x))
-print(t)             # trace(unbound)
-t(n(5))              # → 25 (call it like a function)
-result = t.bind(n(1), n(5))  # → [1, 4, 9, 16, 25]
-
-# Partially bound — set start now, end later
-t2 = trace(lambda x: add(x, n(10)), start=n(1))
-print(t2)            # trace(start=1)
-result = t2.bind(n(3))   # → [11, 12, 13]  (fills in the missing end)
-
-# Or use keyword args
-result = t2.bind(end=n(3))   # → [11, 12, 13]
-```
-
-### Void Rejection
-
-Trace rejects void ranges — void means "no calculation":
-
-```python
-from absence_calculator import VOID
-
-trace(lambda x: x, VOID, n(5))
-# → ValueError: Cannot trace over void — void is no calculation
-```
-
-## Toggle Module
-
-The toggle module flips states of elements in vectors, matrices, and tensors using pattern-based index selection.
-
 ### Toggling at Any Depth
 
 `toggle.all()` works at every depth — flips every element regardless of how deeply nested:
@@ -653,7 +739,7 @@ t_flipped = toggle.all(t)
 # Values preserved — only states changed
 ```
 
-### Axis-Aware Toggling (v0.4.0)
+### Axis-Aware Toggling
 
 `where()` and `exclude()` now accept an `axis` parameter to control which level toggling happens at:
 
