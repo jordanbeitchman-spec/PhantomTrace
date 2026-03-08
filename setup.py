@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="PhantomTrace",
-    version="0.7.7",
+    version="0.8.0",
     description="PhantomTrace — a mathematical framework where numbers exist in present or absent states",
     long_description=open("PKG_README.md").read(),
     long_description_content_type="text/markdown",
