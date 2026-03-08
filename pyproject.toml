@@ -1,6 +1,6 @@
 [project]
 name = "PhantomTrace"
-version = "0.7.7"
+version = "0.8.0"
 description = "PhantomTrace — a mathematical framework where numbers exist in present or absent states with custom operations to include addition, subtraction, multiplication, division, and erasure."
 authors = [{name = "PhantomTrace Project"}]
 requires-python = ">=3.8"
