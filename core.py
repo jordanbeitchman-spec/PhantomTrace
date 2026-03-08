@@ -133,23 +133,29 @@ def _collect_terms(result):
     buckets = {}
     unresolvable = []
 
-    def _collect(r):
+    def _collect(r, sign=1):
         if r is None or isinstance(r, Void):
             return
         if isinstance(r, AbsentNumber):
             key = (r.absence_level, 0)
-            buckets[key] = buckets.get(key, 0) + r.value
+            buckets[key] = buckets.get(key, 0) + r.value * sign
         elif isinstance(r, ErasedExcess):
             key = (r.absence_level, r.erasure_level)
-            buckets[key] = buckets.get(key, 0) + r.value
+            buckets[key] = buckets.get(key, 0) + r.value * sign
         elif isinstance(r, ErasureResult):
-            _collect(r.remainder)
-            _collect(r.erased)
+            _collect(r.remainder, sign)
+            _collect(r.erased, sign)
         elif isinstance(r, Unresolved) and r.op == "+":
-            _collect(r.left)
-            _collect(r.right)
+            _collect(r.left, sign)
+            _collect(r.right, sign)
+        elif isinstance(r, Unresolved) and r.op == "-":
+            _collect(r.left, sign)
+            _collect(r.right, -sign)
         else:
-            unresolvable.append(r)
+            if sign == -1:
+                unresolvable.append(negative(r))
+            else:
+                unresolvable.append(r)
 
     _collect(result)
 
@@ -190,7 +196,7 @@ def _build_result(present, absent, excesses, unresolvable=None):
     parts = []
     for (abs_level, elevel) in sorted(levels.keys()):
         val = levels[(abs_level, elevel)]
-        if val > 0:
+        if val != 0:
             if elevel == 0:
                 parts.append(AbsentNumber(val, abs_level))
             else:
@@ -202,13 +208,31 @@ def _build_result(present, absent, excesses, unresolvable=None):
 
     result = parts[0]
     for p in parts[1:]:
-        if isinstance(result, AbsentNumber) and isinstance(p, AbsentNumber):
+        p_val = None
+        if isinstance(p, AbsentNumber):
+            p_val = p.value
+        elif isinstance(p, ErasedExcess):
+            p_val = p.value
+
+        if p_val is not None and p_val < 0:
+            if isinstance(p, AbsentNumber):
+                pos_p = AbsentNumber(-p.value, p.absence_level)
+            else:
+                pos_p = ErasedExcess(-p.value, p.absence_level, p.erasure_level)
+            if isinstance(result, AbsentNumber) and isinstance(pos_p, AbsentNumber):
+                if result.absence_level == pos_p.absence_level:
+                    result = AbsentNumber(result.value - pos_p.value, result.absence_level)
+                else:
+                    result = Unresolved(result, "-", pos_p)
+            else:
+                result = Unresolved(result, "-", pos_p)
+        elif isinstance(p, ErasedExcess):
+            result = ErasureResult(result, p)
+        elif isinstance(result, AbsentNumber) and isinstance(p, AbsentNumber):
             if result.absence_level == p.absence_level:
                 result = AbsentNumber(result.value + p.value, result.absence_level)
             else:
                 result = Unresolved(result, "+", p)
-        elif isinstance(p, ErasedExcess):
-            result = ErasureResult(result, p)
         else:
             result = Unresolved(result, "+", p)
 
@@ -219,7 +243,15 @@ def _is_tensor(x):
     return isinstance(x, list)
 
 
+def _ensure_number(x):
+    if isinstance(x, (int, float)):
+        return AbsentNumber(x)
+    return x
+
+
 def _add_scalar(x, y):
+    x = _ensure_number(x)
+    y = _ensure_number(y)
     if isinstance(x, AbsentNumber) and isinstance(y, AbsentNumber):
         if x.absence_level == y.absence_level:
             return AbsentNumber(x.value + y.value, x.absence_level)
@@ -245,17 +277,16 @@ def add(x, y):
 
 
 def _subtract_scalar(x, y):
+    x = _ensure_number(x)
+    y = _ensure_number(y)
     if isinstance(x, AbsentNumber) and isinstance(y, AbsentNumber):
         if x.absence_level != y.absence_level:
             return Unresolved(x, "-", y)
         if x.value == y.value:
             return VOID
-        if x.value > y.value:
-            return AbsentNumber(x.value - y.value, x.absence_level)
-        else:
-            return Unresolved(x, "-", y)
+        return AbsentNumber(x.value - y.value, x.absence_level)
 
-    return Unresolved(x, "-", y)
+    return _add_scalar(x, negative(y))
 
 
 def subtract(x, y):
@@ -269,10 +300,42 @@ def subtract(x, y):
 
 
 def _multiply_scalar(x, y):
+    x = _ensure_number(x)
+    y = _ensure_number(y)
     if isinstance(x, AbsentNumber) and isinstance(y, AbsentNumber):
         result_value = x.value * y.value
         result_level = (x.absence_level + y.absence_level) % 2
         return AbsentNumber(result_value, result_level)
+
+    if isinstance(x, Unresolved) and x.op in ("+", "-"):
+        left = multiply(x.left, y)
+        right = multiply(x.right, y)
+        if x.op == "+":
+            return add(left, right)
+        else:
+            return subtract(left, right)
+
+    if isinstance(y, Unresolved) and y.op in ("+", "-"):
+        left = multiply(x, y.left)
+        right = multiply(x, y.right)
+        if y.op == "+":
+            return add(left, right)
+        else:
+            return subtract(left, right)
+
+    if isinstance(x, Unresolved) and x.op == "*":
+        return multiply(x.left, multiply(x.right, y))
+    if isinstance(y, Unresolved) and y.op == "*":
+        return multiply(multiply(x, y.left), y.right)
+    if isinstance(x, Unresolved) and x.op == "/":
+        return divide(multiply(x.left, y), x.right)
+    if isinstance(y, Unresolved) and y.op == "/":
+        return divide(multiply(x, y.left), y.right)
+
+    if isinstance(x, ErasureResult):
+        return add(multiply(x.remainder, y), multiply(x.erased, y))
+    if isinstance(y, ErasureResult):
+        return add(multiply(x, y.remainder), multiply(x, y.erased))
 
     return Unresolved(x, "*", y)
 
@@ -288,6 +351,8 @@ def multiply(x, y):
 
 
 def _divide_scalar(x, y):
+    x = _ensure_number(x)
+    y = _ensure_number(y)
     if isinstance(x, AbsentNumber) and isinstance(y, AbsentNumber):
         if y.value == 0:
             return VOID
@@ -298,6 +363,22 @@ def _divide_scalar(x, y):
         if result_value == int(result_value):
             return AbsentNumber(int(result_value), result_level)
         return AbsentNumber(result_value, result_level)
+
+    if isinstance(x, Unresolved) and x.op in ("+", "-"):
+        left = divide(x.left, y)
+        right = divide(x.right, y)
+        if x.op == "+":
+            return add(left, right)
+        else:
+            return subtract(left, right)
+
+    if isinstance(x, Unresolved) and x.op == "*":
+        return multiply(divide(x.left, y), x.right)
+    if isinstance(x, Unresolved) and x.op == "/":
+        return divide(x.left, multiply(x.right, y))
+
+    if isinstance(x, ErasureResult):
+        return add(divide(x.remainder, y), divide(x.erased, y))
 
     return Unresolved(x, "/", y)
 
@@ -313,6 +394,8 @@ def divide(x, y):
 
 
 def _erase_scalar(x, y):
+    x = _ensure_number(x)
+    y = _ensure_number(y)
     return _add_scalar(x, erased(y))
 
 
@@ -329,10 +412,21 @@ def erase(x, y):
 def erased(x):
     if _is_tensor(x):
         return [erased(xi) for xi in x]
+    if isinstance(x, (int, float)):
+        return ErasedExcess(x, 0, 1)
     if isinstance(x, AbsentNumber):
         return ErasedExcess(x.value, x.absence_level, 1)
     if isinstance(x, ErasedExcess):
         return ErasedExcess(x.value, x.absence_level, x.erasure_level + 1)
+    if isinstance(x, Unresolved) and x.op in ("+", "-"):
+        left = erased(x.left)
+        right = erased(x.right)
+        if x.op == "+":
+            return add(left, right)
+        else:
+            return subtract(left, right)
+    if isinstance(x, ErasureResult):
+        return add(erased(x.remainder), erased(x.erased))
     return ErasedExcess(x, 0, 1)
 
 
@@ -341,6 +435,19 @@ def negative(x):
         return [negative(xi) for xi in x]
     if isinstance(x, AbsentNumber):
         return AbsentNumber(-x.value, x.absence_level)
+    if isinstance(x, Unresolved):
+        if x.op in ("+", "-"):
+            return Unresolved(negative(x.left), x.op, negative(x.right))
+        elif x.op == "*":
+            return multiply(negative(x.left), x.right)
+        elif x.op == "/":
+            return divide(negative(x.left), x.right)
+    if isinstance(x, ErasureResult):
+        return add(negative(x.remainder), negative(x.erased))
+    if isinstance(x, ErasedExcess):
+        return ErasedExcess(-x.value, x.absence_level, x.erasure_level)
+    if isinstance(x, Void):
+        return VOID
     return AbsentNumber(-x, 0)
 
 
@@ -511,50 +618,128 @@ def compare(x, y):
         return VOID
 
 
-def _absent_order(num):
-    if num.is_absent:
-        return -num.value
+class _StateType:
+    def __init__(self, name):
+        self.name = name
+
+    def __repr__(self):
+        return f"{self.name}()"
+
+
+class _Endpoint:
+    def __init__(self, state_type, size):
+        self.state_type = state_type
+        self.size = size
+
+    def __repr__(self):
+        return f"{self.size}({self.state_type})"
+
+
+class _Ordering:
+    def __init__(self, start_endpoint, end_endpoint):
+        self.start_endpoint = start_endpoint
+        self.end_endpoint = end_endpoint
+        self.first_state = start_endpoint.state_type.name
+        self.second_state = end_endpoint.state_type.name
+
+    def __repr__(self):
+        return f"ordering({self.start_endpoint}, {self.end_endpoint})"
+
+
+def present():
+    return _StateType("present")
+
+
+def absent():
+    return _StateType("absent")
+
+
+def smallest(state_type):
+    return _Endpoint(state_type, "smallest")
+
+
+def largest(state_type):
+    return _Endpoint(state_type, "largest")
+
+
+def ordering(start_endpoint, end_endpoint):
+    if start_endpoint.state_type.name == end_endpoint.state_type.name:
+        raise ValueError("Ordering endpoints must be different states")
+    if start_endpoint.size != "largest" or end_endpoint.size != "largest":
+        raise ValueError(
+            "Cross-state ordering must use largest() for both endpoints "
+            "(the path goes through the boundary at magnitude 1)"
+        )
+    return _Ordering(start_endpoint, end_endpoint)
+
+
+def _trace_same_state(fn, start, end):
+    step = 1 if end.value >= start.value else -1
+    results = []
+    current = start.value
+    while (step > 0 and current <= end.value) or (step < 0 and current >= end.value):
+        results.append(fn(AbsentNumber(current, start.absence_level)))
+        current += step
+    return results
+
+
+def _trace_with_ordering(fn, start, end, order):
+    start_state = "absent" if start.is_absent else "present"
+    end_state = "absent" if end.is_absent else "present"
+
+    first_abs = 1 if order.first_state == "absent" else 0
+    second_abs = 1 - first_abs
+
+    if start_state == order.first_state:
+        first_val = start.value
+        second_val = end.value
+        reverse = False
     else:
-        return num.value
+        first_val = end.value
+        second_val = start.value
+        reverse = True
+
+    results = []
+    for v in range(first_val, 0, -1):
+        results.append(fn(AbsentNumber(v, first_abs)))
+    for v in range(1, second_val + 1):
+        results.append(fn(AbsentNumber(v, second_abs)))
+
+    if reverse:
+        results.reverse()
+
+    return results
 
 
-def _order_to_absent_number(order_val):
-    if order_val < 0:
-        return AbsentNumber(abs(order_val), 1)
-    elif order_val == 0:
-        return AbsentNumber(0, 0)
-    else:
-        return AbsentNumber(order_val, 0)
-
-
-def trace(fn, start=None, end=None):
+def trace(fn, start=None, end=None, order=None):
     if isinstance(start, Void) or isinstance(end, Void):
         raise ValueError("Cannot trace over void — void is no calculation")
     if start is not None and end is not None:
-        if not isinstance(start, AbsentNumber):
+        if isinstance(start, (int, float)):
             start = AbsentNumber(start, 0)
-        if not isinstance(end, AbsentNumber):
+        if isinstance(end, (int, float)):
             end = AbsentNumber(end, 0)
-        start_ord = _absent_order(start)
-        end_ord = _absent_order(end)
-        step = 1 if end_ord >= start_ord else -1
-        results = []
-        current = start_ord
-        while (step > 0 and current <= end_ord) or (step < 0 and current >= end_ord):
-            if current == 0:
-                current += step
-                continue
-            results.append(fn(_order_to_absent_number(current)))
-            current += step
-        return results
-    return _UnboundTrace(fn, start, end)
+        if not isinstance(start, AbsentNumber) or not isinstance(end, AbsentNumber):
+            raise ValueError("trace start and end must be numbers")
+
+        if start.absence_level == end.absence_level:
+            return _trace_same_state(fn, start, end)
+
+        if order is None:
+            raise ValueError(
+                "Cannot trace between different states without an ordering. "
+                "Use: trace(fn, start, end, order=ordering(largest(present()), largest(absent())))"
+            )
+        return _trace_with_ordering(fn, start, end, order)
+    return _UnboundTrace(fn, start, end, order)
 
 
 class _UnboundTrace:
-    def __init__(self, fn, start=None, end=None):
+    def __init__(self, fn, start=None, end=None, order=None):
         self.fn = fn
         self.start = start
         self.end = end
+        self.order = order
 
     def bind(self, *args, start=None, end=None):
         if len(args) == 2:
@@ -567,8 +752,8 @@ class _UnboundTrace:
         s = start if start is not None else self.start
         e = end if end is not None else self.end
         if s is not None and e is not None:
-            return trace(self.fn, s, e)
-        return _UnboundTrace(self.fn, s, e)
+            return trace(self.fn, s, e, self.order)
+        return _UnboundTrace(self.fn, s, e, self.order)
 
     def __call__(self, x):
         return self.fn(x)
